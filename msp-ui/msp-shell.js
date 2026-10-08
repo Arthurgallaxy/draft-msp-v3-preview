@@ -58,7 +58,12 @@
 (function (global) {
   'use strict';
 
-  var HUB_URL = 'https://msp-operations.github.io/MSP-Remodel-Preview/';   // not live yet, see _REMODEL_CONTEXT.md
+  // Derive the common parent of sibling draft repositories (localhost or GitHub Pages).
+  var MSP_DRAFT_PORTAL_ROOT = (function () {
+    var m = location.pathname.match(/^(.*?)\/draft-msp-[^/]+(?:\/|$)/);
+    return location.origin + (m ? m[1] : '') + '/';
+  })();
+  var HUB_URL = MSP_DRAFT_PORTAL_ROOT + 'draft-msp-homepage/';
   var SUBTITLE = 'Maastricht Science Programme<br>Faculty of Science &amp; Engineering';
 
   /* The tool suites. When a page is served from below the hub's folder (HUB_URL minus its file
@@ -66,18 +71,18 @@
      other tools of that suite at the top of the sidebar, and links "All tools" to that suite's hub.
      Served anywhere else (a local copy, a tool on its own domain) the switcher stays off. */
   var SUITES = {
-    students: { label: 'Students', one: 'student', hub: '', tools: [
-      { slug: 'faq',             name: 'Student FAQ',       icon: 'help' },
-      { slug: 'course-planner',  name: 'Course Planner',    icon: 'calendar' },
-      { slug: 'btr-dashboard',   name: 'BTR Dashboard',     icon: 'book' },
-      { slug: 'project-periods', name: 'Project Periods',   icon: 'target' },
-      { slug: 'msp-alumni',      name: 'MSP Alumni',        icon: 'globe' } ] },
-    staff: { label: 'Staff', one: 'staff', hub: 'staff.html', tools: [
-      { slug: 'project-periods',   name: 'Project Periods',    icon: 'target' },
-      { slug: 'academic-calendar', name: 'Academic Calendar',  icon: 'clock' },
-      { slug: 'exams-office',      name: 'Exams Office',       icon: 'clipboard' },
-      { slug: 'tutoring',          name: 'Tutor Registration', icon: 'users' },
-      { slug: 'btr-projects',      name: 'BTR for Supervisors', icon: 'briefcase' } ] }
+    students: { label: 'Students', one: 'student', hub: 'draft-msp-homepage/', tools: [
+      { slug: 'draft-msp-faq',             name: 'Student FAQ',       icon: 'help' },
+      { slug: 'draft-msp-course-planner',  name: 'Course Planner',    icon: 'calendar', entry: 'planner-v1.0.0.html' },
+      { slug: 'draft-msp-btr-dashboard',   name: 'BTR Dashboard',     icon: 'book' },
+      { slug: 'draft-msp-project-periods', name: 'Project Periods',   icon: 'target' },
+      { slug: 'draft-msp-alumni',      name: 'MSP Alumni',        icon: 'globe' } ] },
+    staff: { label: 'Staff', one: 'staff', hub: 'draft-msp-homepage/staff.html', tools: [
+      { slug: 'draft-msp-project-periods',   name: 'Project Periods',    icon: 'target' },
+      { slug: 'draft-msp-academic-calendar', name: 'Academic Calendar',  icon: 'clock' },
+      { slug: 'draft-msp-exams-office',      name: 'Exams Office',       icon: 'clipboard' },
+      { slug: 'draft-msp-tutoring',          name: 'Tutor Registration', icon: 'users' },
+      { slug: 'draft-msp-btr-projects',      name: 'BTR for Supervisors', icon: 'briefcase' } ] }
   };
   var SUITE_NAME = 'MSP Online';   // placeholder name, Martijn's call
 
@@ -85,7 +90,7 @@
 
   // which suite and tool is this page? null when not served from the suite folder
   function detectSuite(hubUrl) {
-    var root = String(hubUrl || '').replace(/[^\/]*$/, '');
+    var root = MSP_DRAFT_PORTAL_ROOT;
     if (!root || location.href.indexOf(root) !== 0) return null;
     var slug = location.href.slice(root.length).split(/[\/?#]/)[0];
     var hits = Object.keys(SUITES).filter(function (k) { return SUITES[k].tools.some(function (t) { return t.slug === slug; }); });
@@ -213,13 +218,13 @@
           '<div class="msp-switch-menu" id="msp-switch-menu" role="menu" hidden>' +
             su.suite.tools.map(function (t) {
               var cur = t.slug === su.slug;
-              return '<a role="menuitem" class="msp-switch-item' + (cur ? ' current' : '') + '" href="' + esc(su.root + t.slug + '/') + '"' + (cur ? ' aria-current="page"' : '') + '>' +
+              return '<a role="menuitem" class="msp-switch-item' + (cur ? ' current' : '') + '" href="' + esc(su.root + t.slug + '/' + (t.entry || '')) + '"' + (cur ? ' aria-current="page"' : '') + '>' +
                 '<span class="msp-sb-ico">' + icon(t.icon) + '</span><span>' + esc(t.name) + '</span>' + (cur ? '<span class="msp-switch-here">here</span>' : '') + '</a>';
             }).join('') +
             '<a role="menuitem" class="msp-switch-all" href="' + esc(hub) + '">' + ICONS.hub + ' All ' + esc(su.suite.one) + ' tools</a>' +
           '</div>' +
         '</div>'
-      : '<div class="msp-sb-brand"><a href="' + esc(home) + '">' +
+      : '<div class="msp-sb-brand"><a href="' + esc(hub || home) + '">' +
           '<img src="' + esc(base + 'um-wordmark.png') + '" alt="Maastricht University" class="msp-sb-logo">' +
           '<div class="msp-sb-title' + (String(cfg.title || '').length > 18 ? ' long' : '') + '">' + esc(cfg.title) + '</div>' +
           '<div class="msp-sb-sub">' + (cfg.subtitle != null ? cfg.subtitle : SUBTITLE) + '</div>' +
@@ -232,7 +237,7 @@
       '</nav>' +
       '<div class="msp-sb-meta" id="msp-sb-meta">' + (cfg.meta || '') + '</div>' +
       '<div class="msp-sb-footer">' +
-        '<img class="msp-sb-emblem" src="' + esc(base + 'msp-emblem.png') + '" alt="Maastricht Science Programme">' +
+        '<a href="' + esc(hub || HUB_URL) + '" title="Back to MSP homepage" aria-label="Back to MSP homepage"><img class="msp-sb-emblem" src="' + esc(base + 'msp-emblem.png') + '" alt="Maastricht Science Programme"></a>' +
         (cfg.footer ? '<div class="msp-sb-privacy">' + esc(cfg.footer) + '</div>' : '') +
         (hub ? '<a class="msp-sb-hub" href="' + esc(hub) + '">' + ICONS.hub + (su ? ' All ' + esc(su.suite.one) + ' tools' : ' All MSP tools') + '</a>' : '') +
       '</div>';
